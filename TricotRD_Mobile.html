@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<title>Tricot R&D</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ─── Reset ─── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg0:#0f1117;--bg1:#181c26;--bg2:#1f2535;--bg3:#252d3d;--bg4:#2e3850;
+  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);
+  --text1:#e8ecf5;--text2:#9aa3b8;--text3:#5c6680;
+  --purple:#7F77DD;--teal:#1D9E75;--coral:#D85A30;--pink:#D4537E;
+  --amber:#EF9F27;--red:#E24B4A;--green:#639922;--blue:#378ADD;
+  --purple-bg:rgba(127,119,221,0.18);--teal-bg:rgba(29,158,117,0.18);
+  --red-bg:rgba(226,75,74,0.18);--amber-bg:rgba(239,159,39,0.18);
+  --green-bg:rgba(99,153,34,0.18);--blue-bg:rgba(55,138,221,0.18);
+  --nav-h:64px;--header-h:52px;
+  --font:-apple-system,'Segoe UI',system-ui,sans-serif;
+  --font-mono:'Cascadia Code','Fira Code',monospace;
+  --radius:10px;--radius-lg:14px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--text1);font-family:var(--font);font-size:14px;}
+
+/* ─── App shell ─── */
+#app{display:flex;flex-direction:column;height:100%;position:relative;}
+
+/* ─── Header ─── */
+#header{
+  height:var(--header-h);display:flex;align-items:center;justify-content:space-between;
+  padding:0 14px;background:var(--bg1);border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:10;
+}
+#header .logo{font-size:16px;font-weight:700;letter-spacing:-.02em}
+#header .logo span{color:var(--purple)}
+#header-actions{display:flex;gap:8px;align-items:center}
+.hbtn{
+  font-size:11px;padding:6px 11px;border:1px solid var(--border2);border-radius:20px;
+  background:transparent;color:var(--text2);cursor:pointer;white-space:nowrap;
+}
+.hbtn.accent{background:var(--purple-bg);border-color:var(--purple);color:var(--purple);font-weight:600}
+
+/* ─── Scrollable content ─── */
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 8px)}
+#content::-webkit-scrollbar{display:none}
+
+/* ─── Bottom nav ─── */
+#nav{
+  position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);
+  background:var(--bg1);border-top:1px solid var(--border);
+  display:flex;align-items:stretch;z-index:20;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;color:var(--text3);transition:color .15s;
+  padding:4px 2px;border:none;background:transparent;font-family:var(--font);
+  -webkit-tap-highlight-color:transparent;
+}
+.nav-item.on{color:var(--purple)}
+.nav-item .ni{font-size:20px;line-height:1}
+.nav-item .nl{font-size:9px;font-weight:500;letter-spacing:.02em;white-space:nowrap}
+/* More button nav scrolling */
+#nav-scroll{display:flex;flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#nav-scroll::-webkit-scrollbar{display:none}
+
+/* ─── Panel sections ─── */
+.panel{padding:12px 14px}
+.section{margin-bottom:20px}
+.section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+/* ─── Cards ─── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:10px}
+.card-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px}
+
+/* ─── Stat grid ─── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.stat-card .n{font-size:22px;font-weight:700;color:var(--text1);line-height:1.1}
+.stat-card .l{font-size:10px;color:var(--text2);margin-top:3px}
+
+/* ─── Form controls ─── */
+.field{margin-bottom:14px}
+.field label{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2);margin-bottom:5px}
+.field label .val{font-weight:700;color:var(--text1);font-size:13px}
+.field input[type=range]{width:100%;height:36px;accent-color:var(--purple);cursor:pointer}
+.field select,.field input[type=number]{
+  width:100%;font-size:14px;padding:10px 12px;
+  border:1px solid var(--border2);border-radius:var(--radius);
+  background:var(--bg3);color:var(--text1);cursor:pointer;
+  -webkit-appearance:none;
+}
+.field select:focus,.field input:focus{border-color:var(--purple);outline:none}
+.den-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.den-row .den-label{font-size:10px;color:var(--text3);margin-bottom:4px}
+
+/* ─── Bar cards ─── */
+.bar-card{border-radius:var(--radius);overflow:hidden;margin-bottom:10px;border:1px solid}
+.bar-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;min-height:48px}
+.bar-header span{font-size:13px;font-weight:600}
+.bar-body{padding:12px 14px}
+.bar-mini-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.bar-mini-grid input,.bar-mini-grid select{font-size:12px;padding:8px 6px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text1);width:100%}
+.bar-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.bar-stat{background:var(--bg3);border-radius:8px;padding:8px 10px}
+.bar-stat .bs-l{font-size:9px;color:var(--text3);margin-bottom:2px}
+.bar-stat .bs-v{font-size:13px;font-weight:600}
+
+/* ─── Risk bars ─── */
+.risk-item{margin-bottom:12px}
+.risk-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:12px}
+.risk-track{height:8px;border-radius:4px;background:var(--bg3);overflow:hidden}
+.risk-fill{height:100%;border-radius:4px;transition:width .4s ease}
+
+/* ─── Badges ─── */
+.badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;border:1px solid}
+.badge-ok{background:var(--green-bg);color:#8bca3d;border-color:var(--green)}
+.badge-warn{background:var(--amber-bg);color:var(--amber);border-color:var(--amber)}
+.badge-danger{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+.badge-info{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
+
+/* ─── Alert ─── */
+.alert{padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.6;margin-bottom:8px;border-left:3px solid}
+.alert-danger{background:var(--red-bg);color:#f5a5a5;border-color:var(--red)}
+.alert-warn{background:var(--amber-bg);color:var(--amber);border-color:var(--amber)}
+.alert-ok{background:var(--green-bg);color:#8bca3d;border-color:var(--green)}
+.alert-info{background:var(--blue-bg);color:#89bfee;border-color:var(--blue)}
+
+/* ─── Buttons ─── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;font-size:13px;font-weight:600;border:1px solid var(--border2);border-radius:22px;background:var(--bg3);color:var(--text1);cursor:pointer;transition:all .15s;min-height:44px}
+.btn:active{opacity:.7}
+.btn.primary{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
+.btn.success{background:var(--green-bg);border-color:var(--green);color:#8bca3d}
+.btn.danger{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+.btn.full{width:100%}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+
+/* ─── Canvas ─── */
+canvas.main-canvas{display:block;width:100%;border-radius:var(--radius-lg);border:1px solid var(--border);background:#0a0e1a;touch-action:none}
+
+/* ─── AI chat ─── */
+.ai-messages{display:flex;flex-direction:column;gap:10px;padding-bottom:8px}
+.ai-msg{padding:11px 14px;border-radius:14px;font-size:13px;line-height:1.65;max-width:88%}
+.ai-msg.user{background:var(--purple-bg);border:1px solid rgba(127,119,221,0.35);color:#c8c4f5;align-self:flex-end}
+.ai-msg.assistant{background:var(--bg2);border:1px solid var(--border);color:var(--text1);align-self:flex-start}
+.ai-input-wrap{position:sticky;bottom:0;padding:10px 0 0;background:var(--bg0)}
+.ai-input-row{display:flex;gap:8px}
+.ai-input-row input{flex:1;font-size:14px;padding:11px 14px;border:1px solid var(--border2);border-radius:22px;background:var(--bg2);color:var(--text1);outline:none;min-height:44px}
+.ai-input-row input:focus{border-color:var(--purple)}
+.ai-send{min-width:44px;min-height:44px;border-radius:22px;border:none;background:var(--purple);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ai-sug-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}
+.ai-sug-row::-webkit-scrollbar{display:none}
+.ai-sug{font-size:11px;padding:7px 12px;border:1px solid var(--border2);border-radius:20px;background:var(--bg3);color:var(--text2);white-space:nowrap;cursor:pointer;min-height:36px;display:flex;align-items:center}
+
+/* ─── Library grid ─── */
+.lib-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lib-card{border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px;background:var(--bg2)}
+.lib-card.selected{border-color:var(--purple);border-width:2px}
+.lib-card canvas{width:100%;height:80px;border-radius:8px;border:none;display:block}
+.lib-card-name{font-size:11px;font-weight:600;margin-top:6px;color:var(--text1)}
+.lib-card-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.lib-card-badges{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.lib-card-btns{display:flex;gap:5px;margin-top:8px}
+.lib-card-btns button{flex:1;font-size:10px;padding:7px 4px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text2);cursor:pointer;min-height:36px}
+
+/* ─── Compare ─── */
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cmp-card{border:1px solid var(--border);border-radius:var(--radius);padding:10px;background:var(--bg2)}
+.cmp-card h4{font-size:12px;font-weight:600;margin-bottom:8px}
+.cmp-table{width:100%;font-size:10px;border-collapse:collapse}
+.cmp-table td{padding:3px 0}
+.cmp-table td:last-child{text-align:right;font-weight:600}
+.better{color:var(--green)!important}
+.worse{color:var(--red)!important}
+
+/* ─── 3D ─── */
+.viz3d-wrap{position:relative;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border)}
+.viz3d-hud{position:absolute;top:8px;left:8px;background:rgba(10,14,26,.82);color:var(--text1);font-size:10px;padding:7px 10px;border-radius:8px;line-height:1.7;pointer-events:none;border:1px solid var(--border);max-width:60vw}
+.viz3d-hud strong{color:var(--purple)}
+.viz3d-hint{position:absolute;bottom:8px;right:8px;background:rgba(10,14,26,.7);color:var(--text3);font-size:9px;padding:4px 8px;border-radius:6px;pointer-events:none}
+.viz3d-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0 4px}
+.viz3d-controls label{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.viz3d-controls input[type=range]{width:80px;accent-color:var(--purple)}
+.viz3d-controls input[type=checkbox]{accent-color:var(--purple);width:18px;height:18px}
+
+/* ─── Appearance ─── */
+.ap-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.ap-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px}
+
+/* ─── Ideal setup ─── */
+.ideal-diff-table{width:100%;border-collapse:collapse;font-size:12px}
+.ideal-diff-table td{padding:5px 0}
+.ideal-diff-table td:last-child{text-align:right;font-weight:700}
+.ideal-bar-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ideal-bar{background:var(--bg3);border-radius:8px;padding:10px;border-left:3px solid}
+.ideal-bar .ib-label{font-size:10px;font-weight:600;margin-bottom:5px}
+.ideal-bar .ib-row{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* ─── Export preview ─── */
+.exp-preview{background:#fff;color:#111;border-radius:var(--radius-lg);padding:20px;font-family:Georgia,serif;font-size:11px}
+.exp-preview h1{font-size:16px;font-weight:bold;margin-bottom:4px}
+.exp-preview h2{font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #ddd;padding-bottom:3px;margin:12px 0 6px;color:#555}
+.exp-table{width:100%;border-collapse:collapse;font-size:10px}
+.exp-table td{padding:2px 0}
+.exp-table td:last-child{text-align:right;font-weight:bold}
+
+/* ─── Preset chips ─── */
+.preset-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+.preset-chips::-webkit-scrollbar{display:none}
+.chip{font-size:11px;padding:7px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);white-space:nowrap;cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:500}
+.chip.on{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
+
+/* ─── Legend ─── */
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend-line{width:16px;height:3px;border-radius:2px;flex-shrink:0}
+
+/* ─── Stress legend ─── */
+.stress-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;width:120px}
+.stress-seg{flex:1}
+
+/* ─── Empty state ─── */
+.empty{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty .ei{font-size:40px;margin-bottom:10px}
+.empty p{font-size:13px;color:var(--text2);margin-top:6px}
+
+/* ─── Chart ─── */
+.chart-wrap{position:relative;height:200px;margin-top:12px}
+
+/* ─── Sheet (slide-up config panel) ─── */
+#sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:30;display:none;opacity:0;transition:opacity .2s}
+#sheet-overlay.open{display:block;opacity:1}
+#sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:31;background:var(--bg1);
+  border-radius:20px 20px 0 0;border-top:1px solid var(--border);
+  max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#sheet.open{transform:translateY(0)}
+#sheet::-webkit-scrollbar{display:none}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:10px auto 0}
+.sheet-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px}
+.sheet-title{font-size:15px;font-weight:700}
+.sheet-close{width:32px;height:32px;border-radius:16px;background:var(--bg3);border:none;color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sheet-content{padding:0 16px 20px}
+
+/* ─── FAB simulate button ─── */
+#fab{
+  position:fixed;right:16px;bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-bottom));
+  width:56px;height:56px;border-radius:28px;
+  background:var(--purple);border:none;color:#fff;font-size:22px;
+  box-shadow:0 4px 20px rgba(127,119,221,.45);cursor:pointer;z-index:15;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .1s;
+}
+#fab:active{transform:scale(.92)}
+
+/* ─── API key input ─── */
+#api-key-sheet input{width:100%;font-size:13px;padding:11px 14px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg3);color:var(--text1);font-family:var(--font-mono);margin-top:6px}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ══ HEADER ══ -->
+  <div id="header">
+    <div class="logo">Tricot <span>R&D</span></div>
+    <div id="header-actions">
+      <button class="hbtn" onclick="openSheet('config')">⚙ Setup</button>
+      <button class="hbtn accent" onclick="saveToLibrary()">＋ Save</button>
+    </div>
+  </div>
+
+  <!-- ══ MAIN CONTENT ══ -->
+  <div id="content">
+    <div id="panel" class="panel"></div>
+  </div>
+
+  <!-- ══ FAB ══ -->
+  <button id="fab" onclick="simulate()" title="Run simulation">▶</button>
+
+  <!-- ══ BOTTOM NAV ══ -->
+  <div id="nav">
+    <div id="nav-scroll">
+      <button class="nav-item on" onclick="showTab('fabric',this)"><span class="ni">🧵</span><span class="nl">Fabric</span></button>
+      <button class="nav-item" onclick="showTab('lapping',this)"><span class="ni">📐</span><span class="nl">Lapping</span></button>
+      <button class="nav-item" onclick="showTab('stress',this)"><span class="ni">🌡</span><span class="nl">Stress</span></button>
+      <button class="nav-item" onclick="showTab('risks',this)"><span class="ni">⚠️</span><span class="nl">Risks</span></button>
+      <button class="nav-item" onclick="showTab('library',this)"><span class="ni">📚</span><span class="nl">Library</span></button>
+      <button class="nav-item" onclick="showTab('compare',this)"><span class="ni">⚖️</span><span class="nl">Compare</span></button>
+      <button class="nav-item" onclick="showTab('viz3d',this)"><span class="ni">🎮</span><span class="nl">3D</span></button>
+      <button class="nav-item" onclick="showTab('idealsetup',this)"><span class="ni">✨</span><span class="nl">Ideal</span></button>
+      <button class="nav-item" onclick="showTab('appearance',this)"><span class="ni">👁</span><span class="nl">Look</span></button>
+      <button class="nav-item" onclick="showTab('ai',this)"><span class="ni">🤖</span><span class="nl">AI</span></button>
+      <button class="nav-item" onclick="showTab('export',this)"><span class="ni">📄</span><span class="nl">Export</span></button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ══ SLIDE-UP SHEET ══ -->
+<div id="sheet-overlay" onclick="closeSheet()"></div>
+<div id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <div class="sheet-title" id="sheet-title">Machine setup</div>
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+  </div>
+  <div class="sheet-content" id="sheet-body"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+//  SHARED ENGINE — identical logic to desktop version
+// ══════════════════════════════════════════════════════════════
+const LAPS = {
+  "1-0/0-1":{n:"Closed pillar",u:1,o:0,t:"chain"},
+  "1-0/1-2":{n:"Open pillar",u:1,o:1,t:"tricot"},
+  "2-3/1-0":{n:"Atlas",u:2,o:1,t:"atlas"},
+  "3-4/1-0":{n:"Satin",u:3,o:1,t:"satin"},
+  "2-3/2-1":{n:"Locknit",u:2,o:2,t:"locknit"},
+  "1-2/1-0":{n:"Tricot stitch",u:1,o:1,t:"tricot"},
+  "0-1/3-2":{n:"Rev. locknit",u:0,o:3,t:"locknit"},
+  "0-0/1-1":{n:"Inlay",u:0,o:0,t:"inlay"},
+  "4-5/1-0":{n:"Queen's cord",u:4,o:1,t:"satin"},
+  "2-1/1-2":{n:"Plain tricot",u:2,o:1,t:"tricot"}
+};
+const LKEYS=Object.keys(LAPS);
+const BC=['#7F77DD','#1D9E75','#D85A30','#D4537E'];
+const BB=['rgba(127,119,221,0.18)','rgba(29,158,117,0.18)','rgba(216,90,48,0.18)','rgba(212,83,126,0.18)'];
+const PHASES=[
+  {n:'1. Rest / knockover',d:'Needles low. Old loops on shanks. Sinkers engaged.'},
+  {n:'2. Clearing',d:'Needles rise. Old loops drop below latches.'},
+  {n:'3. Underlap',d:'Guide bars swing back, traverse laterally.'},
+  {n:'4. Overlap',d:'Guide bars swing forward, yarn wraps hooks.'},
+  {n:'5. Loop formation',d:'Needles descend. Latches close. New loops form.'},
+  {n:'6. Knockover',d:'New loops cast off. Takedown pulls fabric down.'},
+];
+
+const PRESETS={
+  atlas: {gauge:28,speed:600,bars:3,dtex:44,denier:39.6,yarn:"polyester",threading:"full",td:8,rl:1150,wt:35,laps:["2-3/1-0","1-0/0-1","1-0/1-2"]},
+  locknit:{gauge:28,speed:550,bars:2,dtex:44,denier:39.6,yarn:"polyester",threading:"full",td:9,rl:1100,wt:38,laps:["2-3/2-1","1-0/0-1"]},
+  satin:  {gauge:32,speed:500,bars:3,dtex:33,denier:29.7,yarn:"nylon",threading:"full",td:7,rl:1200,wt:30,laps:["3-4/1-0","1-0/0-1","1-0/1-2"]},
+  velvet: {gauge:24,speed:400,bars:4,dtex:78,denier:70.2,yarn:"polyester",threading:"half",td:6,rl:1300,wt:28,laps:["1-0/0-1","1-2/1-0","2-3/1-0","0-0/1-1"]}
+};
+
+const FIBER_DENSITY={polyester:1.38,nylon:1.14,elastane:1.21,cotton:1.52,modal:1.5,viscose:1.52,polypropylene:0.91,acrylic:1.18};
+const FIBER_LABEL={polyester:'Polyester FDY',nylon:'Nylon 6.6',elastane:'Elastane',cotton:'Cotton spun',modal:'Modal',viscose:'Viscose',polypropylene:'Polypropylene',acrylic:'Acrylic'};
+const FIBER_DEFAULTS={
+  polyester:{denier:40,filaments:34,twist:0,ply:1,tenacity:4.0,elongation:25},
+  nylon:    {denier:40,filaments:34,twist:0,ply:1,tenacity:4.5,elongation:28},
+  elastane: {denier:20,filaments:1, twist:0,ply:1,tenacity:0.9,elongation:500},
+  cotton:   {denier:60,filaments:1, twist:18,ply:1,tenacity:2.5,elongation:7},
+  modal:    {denier:50,filaments:1, twist:8, ply:1,tenacity:3.4,elongation:14},
+  viscose:  {denier:55,filaments:1, twist:6, ply:1,tenacity:2.2,elongation:20},
+  polypropylene:{denier:50,filaments:36,twist:0,ply:1,tenacity:3.8,elongation:30},
+  acrylic:  {denier:50,filaments:1, twist:10,ply:1,tenacity:2.4,elongation:35},
+};
+
+// Machine state
+let machine={gauge:28,speed:600,bars:3,threading:'full',td:8,rl:1150,wt:35};
+let barYarns=[];
+let simData={};
+let library=[];
+let compareA=null,compareB=null;
+let activeTab='fabric';
+let aiMessages=[{role:'assistant',content:'Hello! I am your tricot knitting specialist AI.\n\nI can analyze your setup, diagnose defects, optimize lapping, and recommend yarn/tension settings.\n\nTap "Send setup" to share your current configuration.'}];
+let aiLoading=false;
+let idealRecs=null,idealLoading=false;
+let three=null;
+let chartInst=null;
+let apiKey='';
+
+// ── Helpers ──────────────────────────────────────────────
+function yarnDiam(denier,fiber,ply){
+  const rho=FIBER_DENSITY[fiber]||1.38;
+  return Math.round(0.0357*Math.sqrt(denier/rho)*(ply||1)*100)/100;
+}
+function needleClearance(denier,fiber,ply,gauge){
+  const slot=Math.round((1000/(gauge||28))*0.55*100)/100;
+  return Math.round((slot-yarnDiam(denier,fiber,ply))*100)/100;
+}
+function clrRisk(v){return v>60?'#E24B4A':v>35?'#EF9F27':'#639922'}
+function badgeRisk(v){const c=v>60?'danger':v>35?'warn':'ok';const l=v>60?'HIGH':v>35?'MED':'LOW';return`<span class="badge badge-${c}">${l}</span>`}
+function hexToRgb(hex){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`${r},${g},${b}`}
+
+function getDefYarn(){
+  const fd=FIBER_DEFAULTS['polyester'];
+  return {fiber:'polyester',denier:40,dtex:44.4,filaments:fd.filaments,twist:fd.twist,ply:1,tenacity:fd.tenacity,elongation:fd.elongation};
+}
+
+function initBarYarns(n){
+  while(barYarns.length<n){
+    const def=getDefYarn();
+    barYarns.push({...def,lap:LKEYS[barYarns.length%LKEYS.length]});
+  }
+  barYarns.length=n;
+}
+
+function getCfg(){
+  const n=machine.bars;
+  initBarYarns(n);
+  const gauge=machine.gauge;
+  const barSpecs=barYarns.slice(0,n).map((by,i)=>{
+    const d=yarnDiam(by.denier,by.fiber,by.ply||1);
+    const cl=needleClearance(by.denier,by.fiber,by.ply||1,gauge);
+    return{bar:i+1,fiber:by.fiber,denier:by.denier,dtex:by.dtex||Math.round(by.denier*1.111*10)/10,
+      filaments:by.filaments||34,twist:by.twist||0,ply:by.ply||1,
+      tenacity:by.tenacity||4.0,elongation:by.elongation||25,
+      lap:by.lap||LKEYS[i%LKEYS.length],yarnDiam:d,clearance:cl,
+      dpf:Math.round(by.denier/(by.filaments||34)*10)/10};
+  });
+  const gb1=barSpecs[0]||{fiber:'polyester',denier:40,dtex:44,filaments:34,twist:0,ply:1,tenacity:4.0,elongation:25,yarnDiam:0.18,clearance:0.2,dpf:1.2,lap:LKEYS[0]};
+  return{...machine,yarn:gb1.fiber,denier:gb1.denier,dtex:gb1.dtex,filaments:gb1.filaments,
+    twist:gb1.twist,ply:gb1.ply,tenacity:gb1.tenacity,elongation:gb1.elongation,
+    yarnDiam:gb1.yarnDiam,clearance:gb1.clearance,dpf:gb1.dpf,
+    laps:barSpecs.map(b=>b.lap),barSpecs};
+}
+
+function computeRisks(cfg){
+  const avgU=cfg.laps.reduce((s,l)=>s+(LAPS[l]?LAPS[l].u:1),0)/cfg.laps.length;
+  const tf=cfg.threading==='full'?1:cfg.threading==='half'?0.6:0.4;
+  const hasInlay=cfg.laps.some(l=>LAPS[l]&&LAPS[l].t==='inlay');
+  const den=cfg.denier||cfg.dtex*0.9,ply=cfg.ply||1,filaments=cfg.filaments||34,twist=cfg.twist||0;
+  const clearance=cfg.clearance||0.2,tenacity=cfg.tenacity||4.0,elongation=cfg.elongation||25;
+
+  let hole=0; if(cfg.gauge>36)hole+=25; if(den<18)hole+=30; if(den>100&&cfg.gauge>28)hole+=15; if(cfg.td>14)hole+=20; if(tf<0.6)hole+=15; if(avgU<1)hole+=10; if(clearance<0.05)hole+=20;
+  let brk=0; if(cfg.speed>900)brk+=30; if(den<18)brk+=25; if(cfg.gauge>36)brk+=15; if(cfg.td>14)brk+=20; if(cfg.wt>60)brk+=10; if(filaments===1&&cfg.speed>700)brk+=15; if(twist>20&&cfg.speed>800)brk+=10; if(tenacity<2.0)brk+=20; if(elongation<10)brk+=15; if(elongation>200&&cfg.speed>700)brk+=10;
+  let dist=0; if(cfg.bars===2&&avgU>2)dist+=35; if(cfg.rl>1400)dist+=25; if(cfg.td<4)dist+=20; if(hasInlay&&cfg.bars<3)dist+=20; if(ply>1&&twist<5)dist+=10;
+  if(cfg.barSpecs&&cfg.barSpecs.length>1){const el=cfg.barSpecs.map(b=>b.elongation||25);const sp=Math.max(...el)-Math.min(...el);if(sp>100)dist+=20;if(sp>300)dist+=15;}
+  let dens=0; if(cfg.speed>900)dens+=15; if(cfg.rl<800||cfg.rl>1500)dens+=20; if(cfg.td<3||cfg.td>16)dens+=20; if(filaments>100&&cfg.gauge<24)dens+=10;
+  let snag=0; if(avgU>=3)snag+=40; if(den<18)snag+=20; if(cfg.yarn==='elastane')snag+=15; if(filaments===1)snag+=20; if(den>80&&avgU>2)snag+=15;
+  let tens=0; if(cfg.wt>60)tens+=35; if(cfg.wt<15)tens+=25; if(cfg.td>16&&cfg.wt>50)tens+=20; if(twist>15&&cfg.speed>700)tens+=10;
+  if(cfg.barSpecs&&cfg.barSpecs.length>1){const dn=cfg.barSpecs.map(b=>b.denier||40);const sp=Math.max(...dn)-Math.min(...dn);if(sp>60)tens+=15;if(sp>120)tens+=15;}
+  let clear=0;
+  if(cfg.barSpecs){const mc=Math.min(...cfg.barSpecs.map(b=>b.clearance||0.2));if(mc<0)clear=95;else if(mc<0.05)clear=75;else if(mc<0.10)clear=45;else if(mc<0.15)clear=20;}
+  else{if(clearance<0)clear=95;else if(clearance<0.05)clear=75;else if(clearance<0.10)clear=45;else if(clearance<0.15)clear=20;}
+
+  const cpi=Math.round(cfg.gauge*(cfg.rl/1150)*0.85),wpi=Math.round(cfg.gauge*tf);
+  const coverFactor=Math.round((wpi*Math.sqrt(den))/100*10)/10;
+  const cov=Math.min(99,Math.round(40+avgU*12+(den/150)*30));
+  const str=cfg.yarn==='elastane'?90:cfg.yarn==='nylon'?55:40;
+  const wt_g=Math.round(cpi*wpi*(den/9000)*10000/Math.max(tf,0.3)*0.001);
+  const thick=Math.round((0.05+avgU*0.02+(den/1000))*100)/100;
+  const dpf=Math.round(den/filaments*10)/10;
+
+  return{
+    risks:{hole:Math.min(hole,95),breakage:Math.min(brk,95),distortion:Math.min(dist,95),density:Math.min(dens,90),snag:Math.min(snag,95),tension:Math.min(tens,85),needle_clearance:Math.min(clear,95)},
+    stats:{cpi,wpi,coverage:cov,stretch:str,weight:wt_g,thickness:thick,avgU:avgU.toFixed(1),coverFactor,dpf,yarnDiam:cfg.yarnDiam,clearance:cfg.clearance}
+  };
+}
+
+function simulate(){
+  const cfg=getCfg();
+  simData={cfg,...computeRisks(cfg)};
+  renderPanel();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SHEET (slide-up config panel)
+// ══════════════════════════════════════════════════════════════
+function openSheet(type){
+  const overlay=document.getElementById('sheet-overlay');
+  const sheet=document.getElementById('sheet');
+  const title=document.getElementById('sheet-title');
+  const body=document.getElementById('sheet-body');
+
+  if(type==='config') buildConfigSheet(title,body);
+  else if(type==='apikey') buildApiKeySheet(title,body);
+
+  overlay.classList.add('open');
+  sheet.classList.add('open');
+}
+function closeSheet(){
+  const overlay=document.getElementById('sheet-overlay');
+  const sheet=document.getElementById('sheet');
+  overlay.classList.remove('open');
+  sheet.classList.remove('open');
+}
+
+function fRow(label,id,min,max,step,val,unit=''){
+  return`<div class="field">
+    <label>${label} <span class="val" id="sv-${id}">${val}${unit}</span></label>
+    <input type="range" min="${min}" max="${max}" step="${step}" value="${val}"
+      oninput="machine.${id}=parseFloat(this.value);document.getElementById('sv-${id}').textContent=this.value+'${unit}';simulate()">
+  </div>`;
+}
+
+function buildConfigSheet(title,body){
+  title.textContent='Machine setup';
+  const barSel=machine.bars;
+
+  // Lapping options for selects
+  const lapOpts=LKEYS.map(k=>`<option value="${k}">${k} — ${LAPS[k].n}</option>`).join('');
+  const fiberOpts=Object.keys(FIBER_DEFAULTS).map(f=>`<option value="${f}">${FIBER_LABEL[f]}</option>`).join('');
+
+  initBarYarns(machine.bars);
+
+  body.innerHTML=`
+  <!-- Presets -->
+  <div class="section">
+    <div class="section-title">Quick presets</div>
+    <div class="preset-chips">
+      <div class="chip" onclick="applyPresetM('atlas')">Atlas</div>
+      <div class="chip" onclick="applyPresetM('locknit')">Locknit</div>
+      <div class="chip" onclick="applyPresetM('satin')">Satin</div>
+      <div class="chip" onclick="applyPresetM('velvet')">Velvet</div>
+    </div>
+  </div>
+
+  <!-- Machine -->
+  <div class="section">
+    <div class="section-title">Machine</div>
+    ${fRow('Gauge (npi)','gauge',14,44,2,machine.gauge,' npi')}
+    ${fRow('Speed (rpm)','speed',100,1200,50,machine.speed,' rpm')}
+    <div class="field">
+      <label>Guide bars</label>
+      <select onchange="machine.bars=parseInt(this.value);initBarYarns(machine.bars);buildConfigSheet(document.getElementById('sheet-title'),document.getElementById('sheet-body'));simulate()">
+        <option value="2"${machine.bars===2?' selected':''}>2 bars</option>
+        <option value="3"${machine.bars===3?' selected':''}>3 bars</option>
+        <option value="4"${machine.bars===4?' selected':''}>4 bars</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Threading</label>
+      <select onchange="machine.threading=this.value;simulate()">
+        <option value="full"${machine.threading==='full'?' selected':''}>Full set</option>
+        <option value="half"${machine.threading==='half'?' selected':''}>Half set</option>
+        <option value="third"${machine.threading==='third'?' selected':''}>1-in / 2-out</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tension -->
+  <div class="section">
+    <div class="section-title">Tension</div>
+    ${fRow('Take-down (cN/cm)','td',2,20,1,machine.td,' cN/cm')}
+    ${fRow('Runner length (mm/rack)','rl',700,1600,10,machine.rl,' mm')}
+    ${fRow('Warp tension (cN)','wt',10,80,1,machine.wt,' cN')}
+  </div>
+
+  <!-- Per-bar yarns -->
+  <div class="section">
+    <div class="section-title">Guide bar yarns</div>
+    ${barYarns.slice(0,machine.bars).map((by,i)=>`
+    <div class="bar-card" style="border-color:${BC[i]}55">
+      <div class="bar-header" style="background:${BB[i]}" onclick="toggleMBarCard(${i})">
+        <span style="color:${BC[i]}">GB${i+1} — ${by.fiber} ${by.denier}den</span>
+        <span id="mbc-${i}" style="color:${BC[i]}">▼</span>
+      </div>
+      <div class="bar-body" id="mbb-${i}">
+        <div class="field">
+          <label>Lapping</label>
+          <select onchange="barYarns[${i}].lap=this.value;simulate()">
+            ${LKEYS.map(k=>`<option value="${k}"${k===by.lap?' selected':''}>${k} — ${LAPS[k].n}</option>`).join('')}
+          </select>
+        </div>
+        <div class="den-row" style="margin-bottom:10px">
+          <div>
+            <div class="den-label">Denier (den)</div>
+            <input type="number" min="1" max="600" step="0.5" value="${by.denier}"
+              style="width:100%;font-size:14px;padding:10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text1)"
+              oninput="barYarns[${i}].denier=parseFloat(this.value)||40;barYarns[${i}].dtex=Math.round(barYarns[${i}].denier*1.111*10)/10;simulate()">
+          </div>
+          <div>
+            <div class="den-label">dtex</div>
+            <input type="number" min="1" max="667" step="0.5" value="${by.dtex||Math.round(by.denier*1.111*10)/10}"
+              style="width:100%;font-size:14px;padding:10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text1)"
+              oninput="barYarns[${i}].dtex=parseFloat(this.value)||44;barYarns[${i}].denier=Math.round(barYarns[${i}].dtex*0.9*10)/10;simulate()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Fiber type</label>
+          <select onchange="const fd=FIBER_DEFAULTS[this.value]||FIBER_DEFAULTS.polyester;barYarns[${i}]={...barYarns[${i}],...fd,fiber:this.value};simulate()">
+            ${Object.keys(FIBER_DEFAULTS).map(f=>`<option value="${f}"${f===by.fiber?' selected':''}>${FIBER_LABEL[f]}</option>`).join('')}
+          </select>
+        </div>
+        <div class="bar-mini-grid">
+          <div><div class="den-label">Filaments</div><input type="number" min="1" max="288" value="${by.filaments||34}" oninput="barYarns[${i}].filaments=parseInt(this.value)||34;simulate()"></div>
+          <div><div class="den-label">Twist TPI</div><input type="number" min="0" max="60" value="${by.twist||0}" oninput="barYarns[${i}].twist=parseInt(this.value)||0;simulate()"></div>
+          <div><div class="den-label">Ply</div><select onchange="barYarns[${i}].ply=parseInt(this.value);simulate()"><option value="1"${(by.ply||1)===1?' selected':''}>1</option><option value="2"${(by.ply||1)===2?' selected':''}>2</option><option value="3"${(by.ply||1)===3?' selected':''}>3</option></select></div>
+        </div>
+        <div class="bar-mini-grid">
+          <div><div class="den-label">Tenacity (cN/dtex)</div><input type="number" min="0.1" max="10" step="0.1" value="${by.tenacity||4.0}" oninput="barYarns[${i}].tenacity=parseFloat(this.value)||4;simulate()"></div>
+          <div><div class="den-label">Elongation (%)</div><input type="number" min="1" max="600" value="${by.elongation||25}" oninput="barYarns[${i}].elongation=parseInt(this.value)||25;simulate()"></div>
+          <div></div>
+        </div>
+        <div class="bar-stats">
+          <div class="bar-stat"><div class="bs-l">Yarn diameter</div><div class="bs-v">${yarnDiam(by.denier,by.fiber,by.ply||1)} mm</div></div>
+          <div class="bar-stat"><div class="bs-l">Needle clearance</div><div class="bs-v" style="color:${needleClearance(by.denier,by.fiber,by.ply||1,machine.gauge)<0.05?'var(--red)':needleClearance(by.denier,by.fiber,by.ply||1,machine.gauge)<0.12?'var(--amber)':'var(--green)'}">${needleClearance(by.denier,by.fiber,by.ply||1,machine.gauge)} mm</div></div>
+        </div>
+      </div>
+    </div>`).join('')}
+  </div>
+
+  <!-- API key -->
+  <div class="section">
+    <div class="section-title">AI API key</div>
+    <div id="api-key-sheet">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Required for AI analysis and ideal setup tabs. Get yours at console.anthropic.com</div>
+      <input type="password" placeholder="sk-ant-..." value="${apiKey}" oninput="apiKey=this.value" style="width:100%;font-size:13px;padding:11px 14px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg3);color:var(--text1);font-family:var(--font-mono)">
+    </div>
+  </div>
+
+  <div style="height:20px"></div>`;
+}
+
+function toggleMBarCard(i){
+  const body=document.getElementById(`mbb-${i}`);
+  const chev=document.getElementById(`mbc-${i}`);
+  if(!body)return;
+  const col=body.style.display==='none';
+  body.style.display=col?'block':'none';
+  chev.textContent=col?'▼':'▶';
+}
+
+function applyPresetM(p){
+  const pr=PRESETS[p]; if(!pr)return;
+  machine={gauge:pr.gauge,speed:pr.speed,bars:pr.bars,threading:pr.threading,td:pr.td,rl:pr.rl,wt:pr.wt||35};
+  const fd=FIBER_DEFAULTS[pr.yarn]||FIBER_DEFAULTS.polyester;
+  const baseYarn={fiber:pr.yarn,denier:pr.denier||40,dtex:pr.dtex||44,filaments:pr.filaments||fd.filaments,twist:fd.twist,ply:1,tenacity:fd.tenacity,elongation:fd.elongation};
+  const overrides={
+    atlas:[{...baseYarn},{fiber:'polyester',denier:15,dtex:16.7,filaments:12,twist:0,ply:1,tenacity:4.0,elongation:25},{fiber:'polyester',denier:22,dtex:24.4,filaments:20,twist:0,ply:1,tenacity:4.0,elongation:25}],
+    locknit:[{...baseYarn},{fiber:'nylon',denier:20,dtex:22.2,filaments:7,twist:0,ply:1,tenacity:4.5,elongation:28}],
+    satin:[{...baseYarn},{fiber:'nylon',denier:15,dtex:16.7,filaments:7,twist:0,ply:1,tenacity:4.5,elongation:28},{fiber:'polyester',denier:30,dtex:33.3,filaments:24,twist:0,ply:1,tenacity:4.0,elongation:25}],
+    velvet:[{...baseYarn},{fiber:'polyester',denier:50,dtex:55.5,filaments:48,twist:0,ply:1,tenacity:4.0,elongation:25},{fiber:'elastane',denier:20,dtex:22.2,filaments:1,twist:0,ply:1,tenacity:0.9,elongation:500},{fiber:'polyester',denier:75,dtex:83.3,filaments:72,twist:0,ply:1,tenacity:4.0,elongation:25}]
+  };
+  barYarns=[];
+  for(let i=0;i<pr.bars;i++){
+    const ov=(overrides[p]||[])[i]||{...baseYarn};
+    barYarns.push({...ov,lap:pr.laps[i]||LKEYS[i%LKEYS.length]});
+  }
+  closeSheet();
+  simulate();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TAB SYSTEM
+// ══════════════════════════════════════════════════════════════
+const NAV_TABS=['fabric','lapping','stress','risks','library','compare','viz3d','idealsetup','appearance','ai','export'];
+
+function showTab(name,el){
+  activeTab=name;
+  document.querySelectorAll('.nav-item').forEach((b,i)=>b.classList.toggle('on',NAV_TABS[i]===name));
+  if(name!=='viz3d'&&three){three.running=false;three=null;}
+  renderPanel();
+}
+
+function renderPanel(){
+  if(activeTab==='fabric')       renderFabric();
+  else if(activeTab==='lapping')    renderLapping();
+  else if(activeTab==='stress')     renderStress();
+  else if(activeTab==='risks')      renderRisks();
+  else if(activeTab==='library')    renderLibrary();
+  else if(activeTab==='compare')    renderCompare();
+  else if(activeTab==='viz3d')      renderViz3D();
+  else if(activeTab==='idealsetup') renderIdealSetup();
+  else if(activeTab==='appearance') renderAppearance();
+  else if(activeTab==='ai')         renderAI();
+  else if(activeTab==='export')     renderExport();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FABRIC TAB
+// ══════════════════════════════════════════════════════════════
+function renderFabric(){
+  const p=document.getElementById('panel');
+  const s=simData.stats;
+  p.innerHTML=`
+  <div class="stat-grid">
+    <div class="stat-card"><div class="n">${s?.cpi||'—'}</div><div class="l">Courses/inch</div></div>
+    <div class="stat-card"><div class="n">${s?.wpi||'—'}</div><div class="l">Wales/inch</div></div>
+    <div class="stat-card"><div class="n">${s?.coverage||'—'}%</div><div class="l">Coverage</div></div>
+    <div class="stat-card"><div class="n">${s?.weight||'—'}<span style="font-size:13px"> g/m²</span></div><div class="l">Est. weight</div></div>
+  </div>
+  <canvas id="fc" class="main-canvas" style="height:260px"></canvas>
+  <div class="legend" id="fab-leg" style="margin-top:10px"></div>`;
+  setTimeout(drawFabric,20);
+}
+function drawFabric(){
+  const canvas=document.getElementById('fc');if(!canvas)return;
+  const cfg=simData.cfg;if(!cfg)return;
+  const W=canvas.offsetWidth,H=260;
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  ctx.fillStyle='#0a0e1a';ctx.fillRect(0,0,W,H);
+  const cols=18,rows=12,cW=W/cols,cH=(H-24)/rows;
+  const tf=cfg.threading==='full'?1:cfg.threading==='half'?0.6:0.4;
+  for(let c=0;c<cols;c++){
+    if(cfg.threading==='half'&&c%2!==0)continue;
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(c*cW+cW/2,24);ctx.lineTo(c*cW+cW/2,H);ctx.stroke();
+  }
+  cfg.laps.forEach((lap,bi)=>{
+    const m=LAPS[lap];if(!m)return;
+    ctx.strokeStyle=BC[bi];ctx.lineWidth=bi===0?2.2:bi===1?1.8:1.4;
+    for(let r=0;r<rows-1;r++) for(let c=0;c<cols-2;c++){
+      if(cfg.threading==='half'&&c%2!==0)continue;
+      const x0=c*cW+cW/2,y0=24+r*cH+cH/2,xN=x0+m.u*cW,yN=y0+cH;
+      if(xN<W){
+        ctx.globalAlpha=0.72;ctx.beginPath();ctx.moveTo(x0,y0);
+        ctx.bezierCurveTo(x0+m.u*cW*.38,y0-6+bi*3,xN-m.u*cW*.38,yN-6+bi*3,xN,yN);ctx.stroke();
+        ctx.globalAlpha=.88;ctx.beginPath();ctx.arc(x0,y0+cH*.48,2.2+bi*.4,0,Math.PI*2);ctx.fillStyle=BC[bi];ctx.fill();
+      }
+      ctx.globalAlpha=1;
+    }
+  });
+  ctx.fillStyle='rgba(255,255,255,0.04)';ctx.fillRect(0,0,W,20);
+  for(let c=0;c<cols;c++){ctx.fillStyle='#3a4560';ctx.beginPath();ctx.arc(c*cW+cW/2,10,3,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='9px system-ui';
+  const sum=(cfg.barSpecs||[]).map(b=>`GB${b.bar}:${b.denier}den`).join(' · ');
+  ctx.fillText(`${cfg.gauge}g · ${sum}`,6,H-5);
+  const leg=document.getElementById('fab-leg');
+  if(leg)leg.innerHTML=cfg.laps.map((l,i)=>`<div class="legend-item"><div class="legend-line" style="background:${BC[i]}"></div>GB${i+1}: ${l}</div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LAPPING TAB
+// ══════════════════════════════════════════════════════════════
+function renderLapping(){
+  const p=document.getElementById('panel');
+  const cfg=simData.cfg;if(!cfg){p.innerHTML='<div class="empty"><div class="ei">📐</div><p>Run simulation first.</p></div>';return;}
+  const H=50+cfg.laps.length*100;
+  p.innerHTML=`<div class="section-title" style="margin-bottom:10px">Lapping diagram (point paper)</div><canvas id="lc" class="main-canvas" style="height:${H}px"></canvas>`;
+  setTimeout(()=>{
+    const canvas=document.getElementById('lc');if(!canvas)return;
+    const W=canvas.offsetWidth;
+    canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+    const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+    ctx.fillStyle='#0a0e1a';ctx.fillRect(0,0,W,H);
+    const needles=11,margin=55,gap=(W-margin*2)/needles;
+    cfg.laps.forEach((lap,bi)=>{
+      const m=LAPS[lap];if(!m)return;
+      const yB=30+bi*100;
+      ctx.fillStyle=BC[bi];ctx.font='500 10px system-ui';ctx.fillText(`GB${bi+1}: ${lap} — ${m.n}`,margin,yB);
+      for(let i=0;i<=needles;i++){
+        const x=margin+i*gap;
+        ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(x,yB+14);ctx.lineTo(x,yB+82);ctx.stroke();
+        [yB+14,yB+82].forEach(y=>{ctx.fillStyle='#3a4460';ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();});
+      }
+      const parts=lap.split('/');
+      const fwd=parts[0]?parts[0].split('-').map(Number):[0,1];
+      const bwd=parts[1]?parts[1].split('-').map(Number):[0,1];
+      const sx=margin+3*gap;
+      ctx.strokeStyle=BC[bi];ctx.lineWidth=2.5;ctx.lineCap='round';ctx.globalAlpha=.88;
+      ctx.beginPath();ctx.moveTo(sx,yB+14);ctx.lineTo(sx+(fwd[1]-fwd[0])*gap,yB+82);ctx.stroke();
+      const mx=sx+(fwd[1]-fwd[0])*gap;
+      ctx.beginPath();ctx.moveTo(mx,yB+82);ctx.lineTo(mx+(bwd[1]-bwd[0])*gap,yB+14);ctx.stroke();
+      ctx.fillStyle=BC[bi];ctx.globalAlpha=1;
+      ctx.beginPath();ctx.arc(sx,yB+14,5.5,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(mx,yB+82,5.5,0,Math.PI*2);ctx.fill();
+    });
+  },20);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  STRESS TAB
+// ══════════════════════════════════════════════════════════════
+function renderStress(){
+  const p=document.getElementById('panel');
+  const cfg=simData.cfg;if(!cfg){p.innerHTML='<div class="empty"><p>Run simulation first.</p></div>';return;}
+  p.innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+    <select id="sm" style="font-size:12px;padding:8px 10px;border:1px solid var(--border2);border-radius:20px;background:var(--bg2);color:var(--text1)" onchange="drawStressM()">
+      <option value="combined">Combined stress</option>
+      <option value="loop">Loop tension</option>
+      <option value="warp">Warp tension</option>
+    </select>
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)">
+      <div class="stress-bar">
+        <div class="stress-seg" style="background:#1a3a5c"></div>
+        <div class="stress-seg" style="background:#378ADD"></div>
+        <div class="stress-seg" style="background:#EF9F27"></div>
+        <div class="stress-seg" style="background:#E24B4A"></div>
+        <div class="stress-seg" style="background:#791F1F"></div>
+      </div>
+      Low → Critical
+    </div>
+  </div>
+  <canvas id="stc" class="main-canvas" style="height:260px"></canvas>
+  <div id="stress-alerts" style="margin-top:12px"></div>`;
+  setTimeout(drawStressM,20);
+}
+function drawStressM(){
+  const canvas=document.getElementById('stc');if(!canvas)return;
+  const cfg=simData.cfg;if(!cfg)return;
+  const W=canvas.offsetWidth,H=260;
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  ctx.fillStyle='#0a0e1a';ctx.fillRect(0,0,W,H);
+  const cols=20,rows=13,cW=W/cols,cH=H/rows;
+  const tf=cfg.threading==='full'?1:cfg.threading==='half'?0.5:0.33;
+  const avgU=cfg.laps.reduce((s,l)=>s+(LAPS[l]?LAPS[l].u:1),0)/cfg.laps.length;
+  const mode=document.getElementById('sm')?.value||'combined';
+  const HCOLS=['#0d1f36','#1a3a6a','#EF9F27','#E24B4A','#7a1010'];
+  let maxS=0;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const edge=Math.abs(c-cols/2)/(cols/2)*0.3,rv=Math.sin(r*.9+c*.6)*.14;
+    let gf=1;if(cfg.threading==='half'&&c%2!==0)gf=.18;if(cfg.threading==='third'&&c%3!==0)gf=.12;
+    let base=(cfg.td/20)+(cfg.speed/1200)*.3+(cfg.wt/80)*.4,s=0;
+    if(mode==='loop')s=(base+rv+avgU*.1)*gf;
+    else if(mode==='warp')s=(cfg.wt/80)*.8+edge+rv*.3;
+    else s=(base*.5+edge*.3+avgU*.12+rv)*gf;
+    s=Math.min(1,Math.max(0,s));if(s>maxS)maxS=s;
+    const ci=Math.floor(s*4.99);
+    ctx.fillStyle=HCOLS[ci];ctx.globalAlpha=.75+s*.25;
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(c*cW+1,r*cH+1,cW-2,cH-2,2);else ctx.rect(c*cW+1,r*cH+1,cW-2,cH-2);ctx.fill();
+    if(s>.72){ctx.strokeStyle='#E24B4A';ctx.lineWidth=1.5;ctx.globalAlpha=1;ctx.strokeRect(c*cW+1,r*cH+1,cW-2,cH-2);}
+    ctx.globalAlpha=1;
+  }
+  ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='9px system-ui';
+  ctx.fillText(`Peak: ${(maxS*100).toFixed(0)}%  ·  Mode: ${mode}`,6,H-5);
+  const alerts=[];const d=document.getElementById('stress-alerts');
+  if(maxS>.72)alerts.push({t:'danger',m:'Critical stress zones. Reduce take-down or warp tension.'});
+  if(cfg.threading!=='full')alerts.push({t:'warn',m:'Partial threading creates alternating high/low-stress columns.'});
+  if(avgU>2.5)alerts.push({t:'warn',m:`Long underlap (${avgU.toFixed(1)} needles) increases lateral tension.`});
+  if(!alerts.length)alerts.push({t:'ok',m:'Stress within acceptable limits.'});
+  if(d)d.innerHTML=alerts.map(a=>`<div class="alert alert-${a.t}">${a.m}</div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RISKS TAB
+// ══════════════════════════════════════════════════════════════
+const RLBLS={hole:'Hole / run',breakage:'Yarn breakage',distortion:'Distortion',density:'Density',snag:'Snag',tension:'Tension',needle_clearance:'Needle clearance'};
+function renderRisks(){
+  const p=document.getElementById('panel');
+  if(!simData.risks){p.innerHTML='<div class="empty"><p>Run simulation first.</p></div>';return;}
+  const {risks,stats,cfg}=simData;
+  const high=Object.entries(risks).filter(([,v])=>v>60).map(([k])=>RLBLS[k]);
+  p.innerHTML=`
+  <div class="stat-grid">
+    <div class="stat-card"><div class="n">${stats.cpi}</div><div class="l">CPI</div></div>
+    <div class="stat-card"><div class="n">${stats.wpi}</div><div class="l">WPI</div></div>
+    <div class="stat-card"><div class="n">${stats.coverFactor}</div><div class="l">Cover factor K</div></div>
+    <div class="stat-card"><div class="n">${stats.thickness}mm</div><div class="l">Thickness</div></div>
+    <div class="stat-card"><div class="n">${stats.yarnDiam}mm</div><div class="l">Yarn diameter</div></div>
+    <div class="stat-card"><div class="n" style="color:${stats.clearance<0.05?'var(--red)':stats.clearance<0.12?'var(--amber)':'var(--green)'}">${stats.clearance}mm</div><div class="l">Needle clearance</div></div>
+  </div>
+  ${high.length?`<div class="alert alert-danger"><strong>Critical:</strong> ${high.join(', ')}</div>`:''}
+  <div class="section-title" style="margin-bottom:12px">Defect risk scores</div>
+  ${Object.entries(risks).map(([k,v])=>`
+  <div class="risk-item">
+    <div class="risk-header"><span>${RLBLS[k]}</span>${badgeRisk(v)}</div>
+    <div class="risk-track"><div class="risk-fill" style="width:${v}%;background:${clrRisk(v)}"></div></div>
+  </div>`).join('')}
+  <div class="chart-wrap"><canvas id="risk-chart" role="img" aria-label="Risk chart">Risk chart.</canvas></div>`;
+  setTimeout(()=>{
+    const el=document.getElementById('risk-chart');if(!el||!window.Chart)return;
+    if(chartInst){chartInst.destroy();chartInst=null;}
+    chartInst=new Chart(el,{type:'bar',
+      data:{labels:Object.keys(risks).map(k=>RLBLS[k]),datasets:[{label:'Risk %',data:Object.values(risks),
+        backgroundColor:Object.values(risks).map(v=>v>60?'rgba(226,75,74,.4)':v>35?'rgba(239,159,39,.4)':'rgba(99,153,34,.4)'),
+        borderColor:Object.values(risks).map(v=>clrRisk(v)),borderWidth:1,borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%',color:'#9aa3b8',font:{size:9}},grid:{color:'rgba(255,255,255,.05)'},border:{display:false}},
+          x:{ticks:{color:'#9aa3b8',font:{size:8}},grid:{display:false},border:{display:false}}}}});
+  },80);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LIBRARY TAB
+// ══════════════════════════════════════════════════════════════
+function renderLibrary(){
+  const p=document.getElementById('panel');
+  const selCount=[compareA,compareB].filter(x=>x!==null).length;
+  p.innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600">${library.length} saved</div>
+    <div style="display:flex;gap:8px">
+      ${selCount>=2?`<button class="btn primary" style="font-size:11px;padding:7px 12px" onclick="showTab('compare')">⚖️ Compare</button>`:''}
+    </div>
+  </div>
+  ${library.length===0?`<div class="empty"><div class="ei">📚</div><p>No saved configs yet.</p><p>Tap <strong style="color:var(--purple)">+ Save</strong> in the header after simulating.</p></div>`:
+  `<div class="lib-grid" id="lib-grid"></div>`}`;
+  const grid=document.getElementById('lib-grid');if(!grid)return;
+  library.forEach((item,idx)=>{
+    const maxR=Math.max(...Object.values(item.risks));
+    const tr=maxR>60?'danger':maxR>35?'warn':'ok';
+    const sel=compareA===idx||compareB===idx;
+    const card=document.createElement('div');
+    card.className='lib-card'+(sel?' selected':'');
+    card.innerHTML=`<canvas id="thumb-${idx}" width="160" height="80"></canvas>
+    <div class="lib-card-name">${item.name}</div>
+    <div class="lib-card-sub">${item.cfg.gauge}g · ${(item.barYarns||[]).map((b,i)=>`GB${i+1}:${b.denier}den`).join(' ')}</div>
+    <div class="lib-card-badges"><span class="badge badge-${tr}">${tr==='ok'?'Low':tr==='warn'?'Med':'High'} risk</span></div>
+    <div class="lib-card-btns">
+      <button onclick="loadFromLibM(${idx})">Load</button>
+      <button onclick="toggleCompareM(${idx})">${sel?'✓ Sel':'Cmp'}</button>
+      <button onclick="deleteLibM(${idx})" style="color:var(--red)">✕</button>
+    </div>`;
+    grid.appendChild(card);
+    setTimeout(()=>drawThumbM(idx),60);
+  });
+}
+function drawThumbM(idx){
+  const canvas=document.getElementById(`thumb-${idx}`);if(!canvas)return;
+  const cfg=library[idx].cfg;
+  canvas.width=(canvas.offsetWidth||160)*devicePixelRatio;canvas.height=80*devicePixelRatio;
+  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  const w=canvas.offsetWidth||160,h=80;
+  ctx.fillStyle='#0a0e1a';ctx.fillRect(0,0,w,h);
+  const cols=10,rows=5,cW=w/cols,cH=h/rows;
+  cfg.laps.forEach((lap,bi)=>{
+    const m=LAPS[lap];if(!m)return;
+    ctx.strokeStyle=BC[bi];ctx.lineWidth=1.5;ctx.globalAlpha=.7;
+    for(let r=0;r<rows-1;r++) for(let c=0;c<cols-m.u-1;c++){
+      const x0=c*cW+cW/2,y0=r*cH+cH/2,xN=x0+m.u*cW,yN=y0+cH;
+      if(xN<w){ctx.beginPath();ctx.moveTo(x0,y0);ctx.bezierCurveTo(x0+m.u*cW*.4,y0-3,xN-m.u*cW*.4,yN-3,xN,yN);ctx.stroke();}
+    }
+    ctx.globalAlpha=1;
+  });
+}
+function saveToLibrary(){
+  if(!simData.cfg){alert('Run a simulation first.');return;}
+  const cfg=simData.cfg;
+  const gb1=cfg.barSpecs?.[0]||{};
+  const name=`${gb1.fiber||'?'} ${gb1.denier||'?'}den · ${cfg.gauge}g`;
+  library.push({name,cfg:{...cfg,laps:[...cfg.laps]},barYarns:barYarns.map(b=>({...b})),risks:{...simData.risks},stats:{...simData.stats},ts:Date.now()});
+  renderLibrary();
+}
+function loadFromLibM(idx){
+  const item=library[idx];const cfg=item.cfg;
+  machine={gauge:cfg.gauge,speed:cfg.speed,bars:cfg.bars,threading:cfg.threading,td:cfg.td,rl:cfg.rl,wt:cfg.wt||35};
+  if(item.barYarns)barYarns=item.barYarns.map(b=>({...b}));
+  simulate();showTab('fabric');
+}
+function deleteLibM(idx){library.splice(idx,1);if(compareA===idx)compareA=null;if(compareB===idx)compareB=null;renderLibrary();}
+function toggleCompareM(idx){
+  if(compareA===idx)compareA=null;else if(compareB===idx)compareB=null;
+  else if(compareA===null)compareA=idx;else compareB=idx;
+  renderLibrary();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  COMPARE TAB
+// ══════════════════════════════════════════════════════════════
+function renderCompare(){
+  const p=document.getElementById('panel');
+  if(compareA===null||compareB===null||!library[compareA]||!library[compareB]){
+    p.innerHTML=`<div class="empty"><div class="ei">⚖️</div><p>Select two configs in the Library tab.</p><button class="btn primary full" style="margin-top:14px" onclick="showTab('library')">Go to library</button></div>`;return;
+  }
+  const A=library[compareA],B=library[compareB];
+  const diffCls=(a,b,hib=true)=>{if(a===b)return'';return(hib?a<b:a>b)?'better':'worse';};
+  p.innerHTML=`
+  <div class="section-title" style="margin-bottom:12px">Side-by-side comparison</div>
+  <div class="cmp-grid">
+    <div class="cmp-card" style="border-color:${BC[0]}55">
+      <h4 style="color:${BC[0]}">${A.name}</h4>
+      <canvas id="cmpA" width="140" height="80" style="width:100%;height:80px;border-radius:6px;border:none;background:#0a0e1a"></canvas>
+      <table class="cmp-table" style="margin-top:8px">
+        ${['cpi','wpi','coverage','weight'].map(k=>`<tr><td style="color:var(--text2)">${k.toUpperCase()}</td><td class="${diffCls(A.stats[k],B.stats[k],false)}">${A.stats[k]}</td></tr>`).join('')}
+        ${Object.entries(A.risks).map(([k,v])=>`<tr><td style="color:var(--text2)">${RLBLS[k]}</td><td class="${diffCls(v,B.risks[k])}">${v}%</td></tr>`).join('')}
+      </table>
+    </div>
+    <div class="cmp-card" style="border-color:${BC[1]}55">
+      <h4 style="color:${BC[1]}">${B.name}</h4>
+      <canvas id="cmpB" width="140" height="80" style="width:100%;height:80px;border-radius:6px;border:none;background:#0a0e1a"></canvas>
+      <table class="cmp-table" style="margin-top:8px">
+        ${['cpi','wpi','coverage','weight'].map(k=>`<tr><td style="color:var(--text2)">${k.toUpperCase()}</td><td class="${diffCls(B.stats[k],A.stats[k],false)}">${B.stats[k]}</td></tr>`).join('')}
+        ${Object.entries(B.risks).map(([k,v])=>`<tr><td style="color:var(--text2)">${RLBLS[k]}</td><td class="${diffCls(v,A.risks[k])}">${v}%</td></tr>`).join('')}
+      </table>
+    </div>
+  </div>
+  <div class="alert alert-info" style="margin-top:12px;font-size:11px"><span style="color:var(--green)">Green</span> = better than other config.</div>`;
+  setTimeout(()=>{
+    ['A','B'].forEach((id,idx)=>{
+      const canvas=document.getElementById('cmp'+id);if(!canvas)return;
+      const lib=idx===0?A:B;
+      canvas.width=(canvas.offsetWidth||140)*devicePixelRatio;canvas.height=80*devicePixelRatio;
+      const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+      const w=canvas.offsetWidth||140,h=80;
+      ctx.fillStyle='#0a0e1a';ctx.fillRect(0,0,w,h);
+      const cols=10,rows=5,cW=w/cols,cH=h/rows;
+      lib.cfg.laps.forEach((lap,bi)=>{
+        const m=LAPS[lap];if(!m)return;
+        ctx.strokeStyle=BC[bi];ctx.lineWidth=1.4;ctx.globalAlpha=.7;
+        for(let r=0;r<rows-1;r++) for(let c=0;c<cols-m.u-1;c++){
+          const x0=c*cW+cW/2,y0=r*cH+cH/2,xN=x0+m.u*cW,yN=y0+cH;
+          if(xN<w){ctx.beginPath();ctx.moveTo(x0,y0);ctx.bezierCurveTo(x0+m.u*cW*.4,y0-3,xN-m.u*cW*.4,yN-3,xN,yN);ctx.stroke();}
+        }
+        ctx.globalAlpha=1;
+      });
+    });
+  },60);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  3D PROCESS TAB
+// ══════════════════════════════════════════════════════════════
+function renderViz3D(){
+  if(three){three.running=false;three=null;}
+  const cfg=simData.cfg;
+  const preset3D=cfg?{name:cfg.laps[0],underlap:Math.max(...cfg.laps.map(l=>LAPS[l]?LAPS[l].u:1)),bars:cfg.bars,colors:BC.slice(0,cfg.bars),laps:cfg.laps}:{name:'Atlas',underlap:2,bars:3,colors:BC.slice(0,3),laps:['2-3/1-0','1-0/0-1','1-0/1-2']};
+  document.getElementById('panel').innerHTML=`
+  <div class="viz3d-wrap">
+    <canvas id="c3d" style="display:block;width:100%;height:340px;touch-action:none"></canvas>
+    <div class="viz3d-hud" id="hud3d"></div>
+    <div class="viz3d-hint">Drag orbit · Pinch zoom</div>
+  </div>
+  <div class="viz3d-controls">
+    <label>Speed <input type="range" id="sp3d" min="0.1" max="3" step="0.1" value="1"> <span id="sp3d-l">1.0×</span></label>
+    <button class="btn" id="play3d" style="font-size:12px;padding:8px 14px">⏸ Pause</button>
+    <label><input type="checkbox" id="yn3d" checked> Yarn</label>
+    <label><input type="checkbox" id="fb3d" checked> Fabric</label>
+  </div>
+  <div class="legend" style="margin-top:6px">${preset3D.laps.map((l,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${BC[i]}"></div>GB${i+1}: ${l}</div>`).join('')}</div>`;
+  setTimeout(()=>init3DM(preset3D),50);
+}
+
+function init3DM(preset){
+  if(!window.THREE){document.getElementById('hud3d').textContent='Three.js not loaded.';return;}
+  const canvas=document.getElementById('c3d');if(!canvas)return;
+  const W=canvas.offsetWidth,H=340;
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(W,H);renderer.shadowMap.enabled=true;
+  const scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0e1a);scene.fog=new THREE.Fog(0x0a0e1a,30,70);
+  const camera=new THREE.PerspectiveCamera(48,W/H,.1,200);
+  const target=new THREE.Vector3(0,1,0);
+  let theta=.2,phi=.42,radius=20;
+  function updateCam(){camera.position.set(target.x+radius*Math.sin(phi)*Math.sin(theta),target.y+radius*Math.cos(phi),target.z+radius*Math.sin(phi)*Math.cos(theta));camera.lookAt(target);}
+  updateCam();
+  scene.add(new THREE.AmbientLight(0xffffff,.5));
+  const dir=new THREE.DirectionalLight(0xffffff,.9);dir.position.set(8,18,10);dir.castShadow=true;scene.add(dir);
+  scene.add(new THREE.GridHelper(28,28,0x1a2244,0x1a2244).position.set(0,-1,0)||new THREE.GridHelper(28,28,0x1a2244,0x1a2244));
+
+  // Touch/mouse orbit
+  let isDrag=false,lastT={x:0,y:0},pinchDist=null;
+  canvas.addEventListener('mousedown',e=>{isDrag=true;lastT={x:e.clientX,y:e.clientY}});
+  window.addEventListener('mouseup',()=>isDrag=false);
+  window.addEventListener('mousemove',e=>{if(!isDrag)return;theta-=(e.clientX-lastT.x)*.008;phi=Math.max(.08,Math.min(1.45,phi-(e.clientY-lastT.y)*.008));lastT={x:e.clientX,y:e.clientY};updateCam();});
+  canvas.addEventListener('wheel',e=>{radius=Math.max(6,Math.min(40,radius+e.deltaY*.04));updateCam();e.preventDefault();},{passive:false});
+  canvas.addEventListener('touchstart',e=>{if(e.touches.length===1){isDrag=true;lastT={x:e.touches[0].clientX,y:e.touches[0].clientY};}else if(e.touches.length===2){pinchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}},{passive:true});
+  canvas.addEventListener('touchend',()=>{isDrag=false;pinchDist=null;},{passive:true});
+  canvas.addEventListener('touchmove',e=>{
+    if(e.touches.length===1&&isDrag){theta-=(e.touches[0].clientX-lastT.x)*.008;phi=Math.max(.08,Math.min(1.45,phi-(e.touches[0].clientY-lastT.y)*.008));lastT={x:e.touches[0].clientX,y:e.touches[0].clientY};updateCam();}
+    else if(e.touches.length===2&&pinchDist!==null){const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);radius=Math.max(6,Math.min(40,radius-(nd-pinchDist)*.04));pinchDist=nd;updateCam();}
+  },{passive:true});
+
+  const NUM=10,SP=1.0,NH=3.2,NT=2.6;
+  const needles=[];
+  const bedMat=new THREE.MeshPhongMaterial({color:0x1e2840});
+  scene.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(11,.4,2.4),bedMat),{receiveShadow:true}));
+  for(let i=0;i<NUM;i++){
+    const x=(i-(NUM-1)/2)*SP,grp=new THREE.Group();grp.position.set(x,0,0);
+    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.055,.065,NH,7),new THREE.MeshPhongMaterial({color:0xb0b8c8,shininess:140}));
+    shaft.position.y=NH/2;shaft.castShadow=true;grp.add(shaft);
+    const hook=new THREE.Mesh(new THREE.TorusGeometry(.12,.03,6,12,Math.PI),new THREE.MeshPhongMaterial({color:0xd4dce8,shininess:200}));
+    hook.position.y=NH+.09;hook.rotation.z=-Math.PI/2;grp.add(hook);
+    const latch=new THREE.Mesh(new THREE.BoxGeometry(.038,.24,.038),new THREE.MeshPhongMaterial({color:0xc0c8d8}));
+    latch.position.y=NH-.1;latch.rotation.z=.4;grp.add(latch);
+    scene.add(grp);needles.push({grp,latch});
+  }
+  const gbs=[];
+  for(let b=0;b<preset.bars;b++){
+    const grp=new THREE.Group(),barY=5+b*.85;
+    const mat=new THREE.MeshPhongMaterial({color:new THREE.Color(preset.colors[b]),shininess:80,transparent:true,opacity:.88});
+    grp.add(new THREE.Mesh(new THREE.BoxGeometry(12,.1,.16),mat));
+    for(let i=0;i<NUM;i++){const x=(i-(NUM-1)/2)*SP;const eg=new THREE.Group();eg.position.x=x;eg.add(new THREE.Mesh(new THREE.TorusGeometry(.1,.028,8,14),mat));grp.add(eg);}
+    grp.position.set(0,barY,0);scene.add(grp);gbs.push({grp,barY});
+  }
+  let yarns=[],fabRows=[],lastRow=-1,t=0,playing=true,speed=1,yt=0;
+  const state={running:true};three=state;
+  function clearYarns(){yarns.forEach(m=>scene.remove(m));yarns=[];}
+  function addYarn(pts,color,r=.04){if(pts.length<2)return;const m=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),Math.max(3,pts.length*3),r,5,false),new THREE.MeshPhongMaterial({color:new THREE.Color(color),shininess:50}));m.castShadow=true;scene.add(m);yarns.push(m);}
+  document.getElementById('play3d')?.addEventListener('click',()=>{playing=!playing;const b=document.getElementById('play3d');if(b)b.textContent=playing?'⏸ Pause':'▶ Play';});
+  document.getElementById('sp3d')?.addEventListener('input',e=>{speed=parseFloat(e.target.value);const l=document.getElementById('sp3d-l');if(l)l.textContent=speed.toFixed(1)+'×';});
+
+  function loop(){
+    if(!state.running){renderer.render(scene,camera);return;}
+    requestAnimationFrame(loop);
+    if(!playing){renderer.render(scene,camera);return;}
+    t+=.008*speed;const cycle=t%1,phI=Math.floor(cycle*6);
+    needles.forEach((nd,i)=>{
+      const nc=(cycle+(i/NUM)*.15)%1;let yO=0;
+      if(nc<.15)yO=(nc/.15)*NT;else if(nc<.35)yO=NT;else if(nc<.55)yO=NT*(1-(nc-.35)/.2);
+      nd.grp.position.y=yO;nd.latch.rotation.z=yO>NT*.55?-.08:.4;
+    });
+    gbs.forEach((gb,b)=>{
+      const gc=(cycle+b*.08)%1;let z=0;
+      if(gc<.3)z=-.5;else if(gc<.42)z=-.5+((gc-.3)/.12)*1.0;else if(gc<.65)z=.5;else if(gc<.75)z=.5-((gc-.65)/.1)*1.0;else z=-.5;
+      const lp=(gc*2)%1,ul=preset.underlap;
+      let xS=lp<.5?Math.sin(lp*Math.PI*2)*ul*SP*.5:Math.sin((lp-.5)*Math.PI*2)*ul*SP*-.5;
+      gb.grp.position.set(xS,gb.barY,z);
+    });
+    yt++;
+    if(yt%4===0&&document.getElementById('yn3d')?.checked!==false){
+      clearYarns();
+      gbs.forEach((gb,b)=>{
+        const bX=gb.grp.position.x,bZ=gb.grp.position.z,bY=gb.barY;
+        const pts=[new THREE.Vector3(-8,bY+1,bZ-.4)];
+        for(let i=0;i<NUM;i++)pts.push(new THREE.Vector3((i-(NUM-1)/2)*SP+bX,bY+Math.sin(i*.7+t*4)*.07,bZ));
+        pts.push(new THREE.Vector3(8,bY+1,bZ-.4));
+        addYarn(pts,preset.colors[b],.04);
+        if(bZ>.1) for(let i=0;i<NUM;i+=2){const x=(i-(NUM-1)/2)*SP+bX;addYarn([new THREE.Vector3(x,bY,bZ),new THREE.Vector3(x,bY-.9,bZ*.5),new THREE.Vector3(x,needles[i].grp.position.y+NH+.09,.05)],preset.colors[b],.03);}
+      });
+    }
+    if(cycle<.05&&Math.floor(t)>lastRow){
+      lastRow=Math.floor(t);
+      if(document.getElementById('fb3d')?.checked!==false){
+        const rowY=-lastRow*.5,row=[];
+        for(let i=0;i<NUM;i++){const x=(i-(NUM-1)/2)*SP;for(let b=0;b<Math.min(preset.bars,2);b++){const ul=preset.underlap;const pts=[new THREE.Vector3(x-ul*.5*SP,rowY+.08,b*.09),new THREE.Vector3(x,rowY+.32,b*.09),new THREE.Vector3(x+ul*.5*SP,rowY+.08,b*.09)];const m=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),8,.034,5,false),new THREE.MeshPhongMaterial({color:new THREE.Color(preset.colors[b]),shininess:55,transparent:true,opacity:.82}));m.castShadow=true;scene.add(m);row.push(m);}}
+        fabRows.push(row);if(fabRows.length>6){const old=fabRows.shift();old.forEach(m=>scene.remove(m));}
+        fabRows.forEach((row,ri)=>row.forEach(m=>m.position.y=-(fabRows.length-1-ri)*.5));
+      }
+    }
+    fabRows.forEach(row=>row.forEach(m=>m.position.y-=(cycle%1)*.005*speed));
+    const hud=document.getElementById('hud3d');
+    if(hud&&document.getElementById('yn3d')?.checked!==false){const ph=PHASES[Math.min(phI,5)];hud.innerHTML=`<strong>${ph.n}</strong><br><span style="opacity:.75;font-size:9px">${ph.d}</span>`;}
+    renderer.render(scene,camera);
+  }
+  loop();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  IDEAL SETUP TAB
+// ══════════════════════════════════════════════════════════════
+function renderIdealSetup(){
+  const p=document.getElementById('panel');
+  if(!simData.cfg){p.innerHTML='<div class="empty"><p>Run simulation first.</p></div>';return;}
+  p.innerHTML=`
+  <div style="margin-bottom:14px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">Ideal setup</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">AI-generated recommendations for your stitch pattern and yarns</div>
+    <div class="btn-row">
+      <button class="btn primary" id="ideal-btn" onclick="generateIdealSetupM()">✨ Generate</button>
+      ${idealRecs?`<button class="btn" onclick="generateIdealSetupM(true)">↻ Regenerate</button>`:''}
+    </div>
+  </div>
+  ${idealRecs?renderIdealContentM():`<div class="empty"><div class="ei">✨</div><p>Tap Generate for AI-powered machine parameter recommendations.</p></div>`}`;
+}
+
+function renderIdealContentM(){
+  if(!idealRecs)return'';
+  const rec=idealRecs,cfg=simData.cfg;
+  function dr(label,cur,ideal,unit='',hib=null){
+    const c=String(cur),id=String(ideal);if(c===id)return`<tr><td style="color:var(--text2)">${label}</td><td>${c}${unit}</td><td style="color:var(--text3)">→</td><td>${id}${unit}</td></tr>`;
+    const nc=parseFloat(c),ni=parseFloat(id);let better=null;
+    if(!isNaN(nc)&&!isNaN(ni)&&hib!==null)better=hib?(ni>nc):(ni<nc);
+    const col=better===null?'var(--blue)':better?'var(--green)':'var(--amber)';
+    return`<tr><td style="color:var(--text2)">${label}</td><td>${c}${unit}</td><td style="color:${col}">${better===null?'→':better?'↑':'↓'}</td><td style="color:${col};font-weight:700">${id}${unit}</td></tr>`;
+  }
+  return`
+  <div class="alert alert-info" style="margin-bottom:12px">${rec.summary||'Recommendations generated.'}</div>
+  ${rec.canApply!==false?`<button class="btn success full" onclick="applyIdealSetupM()" style="margin-bottom:12px">✓ Apply all recommendations</button>`:''}
+  <div class="card">
+    <div class="card-title">Machine parameters</div>
+    <table class="ideal-diff-table">
+      <thead><tr><td style="color:var(--text3);font-size:10px">Parameter</td><td style="color:var(--text3);font-size:10px">Current</td><td></td><td style="color:var(--text3);font-size:10px;text-align:right">Ideal</td></tr></thead>
+      <tbody>
+        ${dr('Gauge',cfg.gauge,rec.gauge||cfg.gauge,' npi',false)}
+        ${dr('Speed',cfg.speed,rec.speed||cfg.speed,' rpm',false)}
+        ${dr('Take-down',cfg.td,rec.td||cfg.td,' cN/cm',false)}
+        ${dr('Runner',cfg.rl,rec.rl||cfg.rl,' mm',true)}
+        ${dr('Warp tension',cfg.wt,rec.wt||cfg.wt,' cN',false)}
+        ${dr('Threading',cfg.threading,rec.threading||cfg.threading)}
+      </tbody>
+    </table>
+  </div>
+  ${rec.bars?`<div class="card"><div class="card-title">Guide bar lapping</div><div class="ideal-bar-grid">${rec.bars.map((b,i)=>`<div class="ideal-bar" style="border-color:${BC[i]}"><div class="ib-label" style="color:${BC[i]}">GB${i+1}</div><div class="ib-row">Lap: <strong>${b.lap||cfg.laps[i]||'—'}</strong></div>${b.denier?`<div class="ib-row">Den: ${b.denier}</div>`:''}${b.note?`<div style="font-size:9px;color:var(--text3);margin-top:3px">${b.note}</div>`:''}</div>`).join('')}</div></div>`:''}
+  ${rec.reasoning?`<div class="card"><div class="card-title">Reasoning</div>${Array.isArray(rec.reasoning)?rec.reasoning.map(r=>`<div class="alert alert-info" style="margin-bottom:6px;font-size:11px"><strong>${r.param}:</strong> ${r.reason}</div>`).join(''):`<div style="font-size:12px;line-height:1.65;color:var(--text1)">${rec.reasoning.replace(/\n/g,'<br>')}</div>`}</div>`:''}
+  ${rec.warnings?.length?`<div>${rec.warnings.map(w=>`<div class="alert alert-warn" style="font-size:11px">${w}</div>`).join('')}</div>`:''}`;
+}
+
+async function generateIdealSetupM(force=false){
+  if(idealLoading)return;
+  if(!apiKey){alert('Enter your API key in Setup (⚙ button).');return;}
+  if(!simData.cfg){alert('Run simulation first.');return;}
+  idealLoading=true;
+  const btn=document.getElementById('ideal-btn');if(btn)btn.textContent='Generating...';
+  const cfg=simData.cfg,{risks,stats}=simData;
+  const bars=(cfg.barSpecs||[]).map(b=>`GB${b.bar}: ${b.fiber} ${b.denier}den/${b.dtex}dtex, ${b.filaments}f, tenacity ${b.tenacity}cN/dtex, elong ${b.elongation}%, lap ${b.lap}`).join('\n');
+  const prompt=`Tricot warp knitting machine specialist. Analyze and return ONLY valid JSON.\n\nCURRENT SETUP:\nGauge: ${cfg.gauge} npi | Speed: ${cfg.speed} rpm | Bars: ${cfg.bars} | Threading: ${cfg.threading}\nTake-down: ${cfg.td} cN/cm | Runner: ${cfg.rl} mm/rack | Warp tension: ${cfg.wt} cN\nYarns:\n${bars}\nLapping: ${cfg.laps.join(' / ')}\nPredicted: CPI ${stats.cpi}, WPI ${stats.wpi}, coverage ${stats.coverage}%, K=${stats.coverFactor}\nRisks: hole ${risks.hole}%, breakage ${risks.breakage}%, distortion ${risks.distortion}%, needle clearance ${risks.needle_clearance}%\n\nReturn ONLY JSON:\n{"summary":"...","gauge":N,"speed":N,"threading":"full|half|third","td":N,"rl":N,"wt":N,"bars":[{"bar":1,"lap":"...","denier":N,"fiber":"...","note":"..."}],"reasoning":[{"param":"...","reason":"..."}],"warnings":["..."],"canApply":true}`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1200,
+        system:'Tricot warp knitting specialist. Return ONLY valid JSON, no markdown.',
+        messages:[{role:'user',content:prompt}]})});
+    const data=await resp.json();
+    const raw=data.content?.[0]?.text||'{}';
+    idealRecs=JSON.parse(raw.replace(/```json|```/g,'').trim());
+  }catch(e){idealRecs={summary:'Error: '+e.message,canApply:false,reasoning:[]};}
+  idealLoading=false;renderIdealSetup();
+}
+
+function applyIdealSetupM(){
+  if(!idealRecs)return;
+  const rec=idealRecs;
+  if(rec.gauge)machine.gauge=rec.gauge;
+  if(rec.speed)machine.speed=rec.speed;
+  if(rec.threading)machine.threading=rec.threading;
+  if(rec.td)machine.td=rec.td;
+  if(rec.rl)machine.rl=rec.rl;
+  if(rec.wt)machine.wt=rec.wt;
+  if(rec.bars)rec.bars.forEach((b,i)=>{if(!barYarns[i])return;if(b.lap)barYarns[i].lap=b.lap;if(b.denier){barYarns[i].denier=b.denier;barYarns[i].dtex=Math.round(b.denier*1.111*10)/10;}if(b.fiber)barYarns[i].fiber=b.fiber;});
+  simulate();
+  alert('Recommendations applied!');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  APPEARANCE TAB
+// ══════════════════════════════════════════════════════════════
+function renderAppearance(){
+  const p=document.getElementById('panel');
+  if(!simData.cfg){p.innerHTML='<div class="empty"><p>Run simulation first.</p></div>';return;}
+  p.innerHTML=`
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+    <label style="font-size:12px;color:var(--text2)">Zoom <input type="range" id="ap-zoom" min="1" max="4" step=".1" value="2" style="width:70px;vertical-align:middle;accent-color:var(--purple)" oninput="drawApStruct()"></label>
+    <label style="font-size:12px;color:var(--text2)">Light <input type="range" id="ap-light" min="0" max="360" step="1" value="45" style="width:70px;vertical-align:middle;accent-color:var(--purple)" oninput="drawApSwatch()"></label>
+    <label style="font-size:12px;color:var(--text2)"><input type="checkbox" id="ap-loops" checked onchange="drawApStruct()" style="accent-color:var(--purple)"> Nodes</label>
+  </div>
+  <div class="ap-grid">
+    <div>
+      <div class="ap-label">Loop interlacement structure</div>
+      <canvas id="ap-struct" class="main-canvas" style="height:220px"></canvas>
+      <div class="legend" id="ap-leg" style="margin-top:8px"></div>
+    </div>
+    <div>
+      <div class="ap-label">Rendered fabric swatch</div>
+      <canvas id="ap-swatch" class="main-canvas" style="height:220px"></canvas>
+      <div id="ap-info" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
+  </div>`;
+  setTimeout(()=>{drawApStruct();drawApSwatch();},30);
+}
+
+function drawApStruct(){
+  const canvas=document.getElementById('ap-struct');if(!canvas)return;
+  const cfg=simData.cfg;if(!cfg)return;
+  const zoom=parseFloat(document.getElementById('ap-zoom')?.value||2);
+  const showLoops=document.getElementById('ap-loops')?.checked!==false;
+  const W=canvas.offsetWidth,H=220;
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  canvas.style.height='220px';
+  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  ctx.fillStyle='#0a0e1a';ctx.fillRect(0,0,W,H);
+  const cols=Math.round(9*zoom),rows=Math.round(6*zoom),cW=W/cols,cH=H/rows;
+  const mx=cW*.5,my=cH*.5;
+  for(let c=0;c<cols;c++){ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(mx+c*cW,0);ctx.lineTo(mx+c*cW,H);ctx.stroke();}
+  cfg.laps.forEach((lap,bi)=>{
+    const m=LAPS[lap];if(!m)return;
+    ctx.strokeStyle=BC[bi];ctx.lineWidth=bi===0?2:bi===1?1.6:1.3;ctx.lineCap='round';
+    for(let r=0;r<rows-1;r++) for(let c=0;c<cols-m.u-1;c++){
+      const x0=mx+c*cW,y0=my+r*cH,xN=x0+m.u*cW,yN=y0+cH;
+      if(xN>W)continue;
+      ctx.globalAlpha=.75;ctx.beginPath();ctx.moveTo(x0,y0);
+      ctx.bezierCurveTo(x0+m.u*cW*.3,y0-cH*.22+bi*2.5,xN-m.u*cW*.3,yN-cH*.22+bi*2.5,xN,yN);ctx.stroke();
+      ctx.globalAlpha=.9;ctx.beginPath();ctx.moveTo(x0,y0-cH*.35);ctx.bezierCurveTo(x0-cW*.16,y0-cH*.7,x0+cW*.16,y0-cH*.7,x0,y0-cH*.35);ctx.stroke();
+      if(showLoops){ctx.globalAlpha=1;ctx.fillStyle=BC[bi];ctx.beginPath();ctx.arc(x0,y0,2.5+bi*.3,0,Math.PI*2);ctx.fill();}
+      ctx.globalAlpha=1;
+    }
+  });
+  ctx.fillStyle='rgba(255,255,255,.04)';ctx.fillRect(0,0,W,7);
+  for(let c=0;c<cols;c++){ctx.fillStyle='#3a4560';ctx.beginPath();ctx.arc(mx+c*cW,3.5,2.5,0,Math.PI*2);ctx.fill();}
+  const leg=document.getElementById('ap-leg');
+  if(leg)leg.innerHTML=cfg.laps.map((l,i)=>`<div class="legend-item"><div class="legend-line" style="background:${BC[i]}"></div>GB${i+1}: ${l}</div>`).join('');
+}
+
+function drawApSwatch(){
+  const canvas=document.getElementById('ap-swatch');if(!canvas)return;
+  const cfg=simData.cfg;if(!cfg)return;
+  const gb1=cfg.barSpecs?.[0]||{fiber:'polyester',denier:40};
+  const W=canvas.offsetWidth,H=220;
+  canvas.width=W*devicePixelRatio;canvas.height=H*devicePixelRatio;
+  canvas.style.height='220px';
+  const ctx=canvas.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
+  const lightAngle=(parseFloat(document.getElementById('ap-light')?.value||45)*Math.PI/180);
+  const lx=Math.cos(lightAngle),ly=Math.sin(lightAngle);
+  const {stats}=simData;
+  const cpi=stats?.cpi||28,wpi=stats?.wpi||28,coverage=(stats?.coverage||70)/100;
+  const den=gb1.denier||40,fiber=gb1.fiber||'polyester';
+  const FIBER_COLOR={polyester:'#d0d4e0',nylon:'#e0d8cc',elastane:'#e8e0c8',cotton:'#f0ead8',modal:'#ece8e0',viscose:'#ddd8d0',polypropylene:'#d8e0d8',acrylic:'#e0d8e4'};
+  const SHEEN={polyester:.7,nylon:.5,elastane:.4,cotton:.05,modal:.12,viscose:.35,polypropylene:.25,acrylic:.18};
+  const yarnColor=FIBER_COLOR[fiber]||'#d0d4e0',sheen=SHEEN[fiber]||.3;
+  ctx.fillStyle='#1a1e2e';ctx.fillRect(0,0,W,H);
+  const cellW=W/Math.min(wpi*.8,28),cellH=H/Math.min(cpi*.8,22),yarnR=Math.max(1.2,Math.min(cellW*.28,(den/40)*2));
+  for(let x=cellW/2;x<W;x+=cellW){const shade=.18+lx*.08;ctx.strokeStyle=`rgba(${hexToRgb(yarnColor)},${shade})`;ctx.lineWidth=yarnR*1.1;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let row=0;row<Math.ceil(H/cellH)+1;row++){
+    const y0=row*cellH,xOff=(row%2)*cellW*.5;
+    for(let col=0;col<Math.ceil(W/cellW)+1;col++){
+      const x=col*cellW+xOff;if(x<-cellW||x>W+cellW)continue;
+      const loopNx=-Math.sin(col*.3)*.6,loopNy=.8,ld=Math.max(0,loopNx*lx+loopNy*ly);
+      const ambient=.25+coverage*.2,diffuse=ld*.55,spec=sheen*Math.pow(Math.max(0,ld),12),brightness=Math.min(1,ambient+diffuse+spec);
+      const rgb=hexToRgb(yarnColor);
+      const pr=parseInt(rgb.split(',')[0]),pg=parseInt(rgb.split(',')[1]),pb=parseInt(rgb.split(',')[2]);
+      ctx.strokeStyle=`rgb(${Math.round(pr*brightness)},${Math.round(pg*brightness)},${Math.round(pb*brightness)})`;
+      ctx.lineWidth=yarnR;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(x-cellW*.5,y0+cellH*.2);ctx.bezierCurveTo(x-cellW*.2,y0-cellH*.24,x+cellW*.2,y0-cellH*.24,x+cellW*.5,y0+cellH*.2);ctx.stroke();
+      const lb2=Math.min(1,ambient+diffuse*.6);
+      ctx.strokeStyle=`rgb(${Math.round(pr*lb2)},${Math.round(pg*lb2)},${Math.round(pb*lb2)})`;
+      ctx.lineWidth=yarnR*.85;
+      ctx.beginPath();ctx.moveTo(x-cellW*.5,y0+cellH*.2);ctx.lineTo(x-cellW*.5,y0+cellH*.75);ctx.moveTo(x+cellW*.5,y0+cellH*.2);ctx.lineTo(x+cellW*.5,y0+cellH*.75);ctx.stroke();
+      if(sheen>.2){const gr=ctx.createRadialGradient(x,y0-cellH*.16,0,x,y0-cellH*.16,yarnR*1.7);gr.addColorStop(0,`rgba(255,255,255,${sheen*.55})`);gr.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y0-cellH*.16,yarnR*1.7,0,Math.PI*2);ctx.fill();}
+    }
+  }
+  const vig=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.33,W/2,H/2,Math.min(W,H)*.68);
+  vig.addColorStop(0,'rgba(0,0,0,0)');vig.addColorStop(1,'rgba(0,0,0,.4)');
+  ctx.fillStyle=vig;ctx.fillRect(0,0,W,H);
+  const info=document.getElementById('ap-info');
+  const elas=fiber==='elastane'?'highly elastic':fiber==='nylon'?'mod. elastic':'minimal stretch';
+  if(info)info.innerHTML=[`${fiber} · ${den}den`,`${cpi}×${wpi} CPI×WPI`,`${(coverage*100).toFixed(0)}% cov`,elas].map(t=>`<span style="background:var(--bg3);font-size:10px;padding:4px 8px;border-radius:5px">${t}</span>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  AI TAB
+// ══════════════════════════════════════════════════════════════
+function renderAI(){
+  const p=document.getElementById('panel');
+  p.innerHTML=`
+  <div class="ai-sug-row">
+    <div class="ai-sug" onclick="triggerAIM('Diagnose my current setup and list all risks.')">Diagnose setup</div>
+    <div class="ai-sug" onclick="triggerAIM('What lapping movements should I use for my yarns?')">Optimize lapping</div>
+    <div class="ai-sug" onclick="triggerAIM('Recommend tension settings for this yarn.')">Tension advice</div>
+    <div class="ai-sug" onclick="triggerAIM('How do I fix holes and runs in my tricot fabric?')">Fix holes</div>
+    <div class="ai-sug" onclick="triggerAIM('Explain Atlas vs Locknit vs Satin stitch.')">Compare stitches</div>
+  </div>
+  <div class="ai-messages" id="ai-msgs">${aiMessages.map(m=>`<div class="ai-msg ${m.role}">${m.content.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`).join('')}</div>
+  <div class="ai-input-wrap">
+    <button class="btn" style="font-size:11px;padding:7px 12px;margin-bottom:8px;border-radius:20px" onclick="injectAICtxM()">📋 Send my setup</button>
+    <div class="ai-input-row">
+      <input type="text" id="ai-inp" placeholder="Ask about your setup, defects, lapping..." onkeydown="if(event.key==='Enter')sendAIM()">
+      <button class="ai-send" onclick="sendAIM()">↑</button>
+    </div>
+  </div>`;
+  scrollAIM();
+}
+function scrollAIM(){setTimeout(()=>{const m=document.getElementById('ai-msgs');if(m)m.scrollTop=m.scrollHeight;},50);}
+function injectAICtxM(){
+  if(!simData.cfg)return;
+  const {cfg,risks,stats}=simData;
+  const bars=(cfg.barSpecs||[]).map(b=>`GB${b.bar}: ${b.fiber} ${b.denier}den, ${b.filaments}f, ten ${b.tenacity}cN/dtex, elong ${b.elongation}%, lap ${b.lap}`).join(' | ');
+  const inp=document.getElementById('ai-inp');
+  if(inp)inp.value=`Setup: ${cfg.gauge}g, ${cfg.bars} bars, ${cfg.threading} threading, TD ${cfg.td} cN/cm, runner ${cfg.rl}mm, warp ${cfg.wt}cN. Yarns: ${bars}. Risks: hole ${risks.hole}%, breakage ${risks.breakage}%, distortion ${risks.distortion}%, clearance ${risks.needle_clearance}%. Please analyze.`;
+}
+function triggerAIM(msg){const inp=document.getElementById('ai-inp');if(inp)inp.value=msg;sendAIM();}
+async function sendAIM(){
+  const inp=document.getElementById('ai-inp');if(!inp)return;
+  const msg=inp.value.trim();if(!msg||aiLoading)return;
+  if(!apiKey){alert('Enter your API key in Setup (⚙ button).');return;}
+  inp.value='';aiMessages.push({role:'user',content:msg});aiLoading=true;
+  const cfg=simData.cfg;
+  const ctxStr=cfg?`\n\nSetup: ${cfg.gauge}g, ${cfg.bars} bars, yarns: ${(cfg.barSpecs||[]).map(b=>`GB${b.bar} ${b.fiber} ${b.denier}den`).join(', ')}, lapping: ${cfg.laps.join(' / ')}, take-down ${cfg.td}cN/cm, runner ${cfg.rl}mm/rack.`:'';
+  const msgEl=document.createElement('div');msgEl.className='ai-msg assistant loading';msgEl.textContent='Analyzing…';
+  const msgs=document.getElementById('ai-msgs');if(msgs){msgs.appendChild(msgEl);scrollAIM();}
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,
+        system:`You are a tricot warp knitting engineering specialist. Give precise, technical, actionable answers. When recommending changes, give exact values. Keep responses clear and concise for mobile reading.${ctxStr}`,
+        messages:aiMessages})});
+    const data=await resp.json();
+    const reply=data.content?.[0]?.text||'Unable to get response.';
+    aiMessages.push({role:'assistant',content:reply});
+  }catch(e){aiMessages.push({role:'assistant',content:'Error: '+e.message});}
+  aiLoading=false;renderAI();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  EXPORT TAB
+// ══════════════════════════════════════════════════════════════
+function renderExport(){
+  const p=document.getElementById('panel');
+  if(!simData.cfg){p.innerHTML='<div class="empty"><p>Run simulation first.</p></div>';return;}
+  const {cfg,risks,stats}=simData;
+  const date=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const maxR=Math.max(...Object.values(risks));
+  const status=maxR>60?'CRITICAL':maxR>35?'REVIEW REQUIRED':'APPROVED';
+  const statusColor=maxR>60?'#c0392b':maxR>35?'#d68910':'#1e8449';
+  p.innerHTML=`
+  <div class="btn-row">
+    <button class="btn success" onclick="printReportM()">🖨 Print / PDF</button>
+    <button class="btn" onclick="copyReportM()">📋 Copy text</button>
+  </div>
+  <div class="exp-preview" id="exp-preview">
+    <div style="border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div><div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:3px">Tricot R&D Platform</div><h1>${(cfg.barSpecs?.[0]?.fiber||cfg.yarn||'?').charAt(0).toUpperCase()+(cfg.barSpecs?.[0]?.fiber||cfg.yarn||'?').slice(1)} ${cfg.gauge}g / ${cfg.laps[0]}</h1><div style="font-size:9px;color:#888;margin-top:2px">${date}</div></div>
+      <div style="text-align:right"><div style="font-size:8px;color:#888;margin-bottom:3px">Status</div><div style="background:${statusColor}22;color:${statusColor};font-size:9px;font-weight:bold;padding:4px 8px;border-radius:4px;border:1px solid ${statusColor}44">${status}</div></div>
+    </div>
+    <h2>Machine configuration</h2>
+    <table class="exp-table">
+      ${[['Gauge',cfg.gauge+' npi'],['Bars',cfg.bars],['Speed',cfg.speed+' rpm'],['Threading',cfg.threading],['Take-down',cfg.td+' cN/cm'],['Runner',cfg.rl+' mm/rack'],['Warp tension',cfg.wt+' cN']].map(([l,v])=>`<tr><td style="color:#555">${l}</td><td>${v}</td></tr>`).join('')}
+    </table>
+    <h2>Per-bar yarns</h2>
+    ${(cfg.barSpecs||[]).map(b=>`<div style="margin-bottom:6px;padding:5px 0;border-bottom:0.5px solid #eee"><strong>GB${b.bar}: ${b.fiber} ${b.denier}den / ${b.dtex}dtex</strong><br><span style="color:#666">${b.filaments}f · ${b.twist}TPI · ${b.ply}-ply · ${b.tenacity}cN/dtex · ${b.elongation}% elong · Ø${b.yarnDiam}mm · cl ${b.clearance}mm · ${b.lap}</span></div>`).join('')}
+    <h2>Predicted properties</h2>
+    <table class="exp-table">
+      ${[['CPI',stats.cpi],['WPI',stats.wpi],['Coverage',stats.coverage+'%'],['Cover factor K',stats.coverFactor],['Weight',stats.weight+' g/m²'],['Thickness',stats.thickness+' mm'],['Stretch recovery',stats.stretch+'%']].map(([l,v])=>`<tr><td style="color:#555">${l}</td><td>${v}</td></tr>`).join('')}
+    </table>
+    <h2>Defect risk assessment</h2>
+    ${Object.entries(risks).map(([k,v])=>{const c=v>60?'#c0392b':v>35?'#d68910':'#1e8449';const l=v>60?'HIGH':v>35?'MEDIUM':'LOW';return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="font-size:9px;color:#555;width:100px;flex-shrink:0">${RLBLS[k]}</span><div style="flex:1;height:5px;background:#eee;border-radius:3px;overflow:hidden"><div style="width:${v}%;height:100%;background:${c}"></div></div><span style="font-size:9px;font-weight:bold;color:${c};width:50px;text-align:right">${l} ${v}%</span></div>`;}).join('')}
+    <div style="margin-top:12px;padding:8px 10px;background:#f8f8f6;border-left:2px solid #aaa;font-size:9px;color:#555;line-height:1.6">Simulated parameters only. Validate with physical knit-downs before production.</div>
+  </div>`;
+}
+function printReportM(){
+  const el=document.getElementById('exp-preview');if(!el)return;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Tricot Report</title><style>body{font-family:Georgia,serif;margin:24px;color:#111;font-size:11px}h1{font-size:18px}h2{font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #ddd;padding-bottom:3px;margin:12px 0 6px;color:#555}table{width:100%;border-collapse:collapse}td{padding:2px 0}td:last-child{text-align:right;font-weight:bold}@media print{body{margin:0}@page{margin:15mm}}</style></head><body>${el.outerHTML}<script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+function copyReportM(){
+  if(!simData.cfg)return;
+  const {cfg,risks,stats}=simData;
+  const bars=(cfg.barSpecs||[]).map(b=>`  GB${b.bar}: ${b.fiber} ${b.denier}den, ${b.filaments}f, ${b.twist}TPI, ${b.ply}-ply, ${b.tenacity}cN/dtex, ${b.elongation}% elong, lap ${b.lap}`).join('\n');
+  const text=`TRICOT R&D PLATFORM REPORT\n${new Date().toLocaleDateString()}\n\nMACHINE: ${cfg.gauge}g | ${cfg.bars} bars | ${cfg.speed}rpm | ${cfg.threading}\nTENSION: TD ${cfg.td}cN/cm | Runner ${cfg.rl}mm | Warp ${cfg.wt}cN\n\nPER-BAR YARNS:\n${bars}\n\nPROPERTIES: CPI ${stats.cpi} | WPI ${stats.wpi} | ${stats.coverage}% cov | K=${stats.coverFactor} | ${stats.weight}g/m²\n\nRISKS:\n${Object.entries(risks).map(([k,v])=>`  ${RLBLS[k]}: ${v}% (${v>60?'HIGH':v>35?'MED':'LOW'})`).join('\n')}`;
+  navigator.clipboard.writeText(text).then(()=>alert('Copied!')).catch(()=>alert('Copy failed — use Print instead.'));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════
+applyPresetM('atlas');
+</script>
+</body>
+</html>
